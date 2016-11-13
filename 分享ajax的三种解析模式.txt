@@ -1,0 +1,213 @@
+一、Ajax中的JSON格式
+html代码：
+
+<html>
+<body>
+ <input type="button" value="Ajax" id="btn">
+ <script>
+  var btn = document.getElementById("btn");
+  btn.onclick = function(){
+    var xhr = getXhr();
+    xhr.open("post","10.php");
+    xhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
+    /*
+     * 在客户端如何构建JSON格式
+     * * 构建符合JSON格式的字符串
+     */
+    var user = '{"name":"zhangwuji","pwd":"123456"}';
+    xhr.send("user="+user);
+    xhr.onreadystatechange = function(){
+      if(xhr.readyState==4&&xhr.status==200){
+        var data = xhr.responseText;
+        /*
+         * 使用eval()函数进行转换
+         * * 使用"()"将其包裹,eval()函数强制将其转换为JSON格式(javascript代码)
+         * * 不使用"()"将其包裹,eval()函数将其识别为一个空的代码块
+         */
+        var json = eval("("+data+")");
+        console.log(json);
+      }
+    }
+  }
+  function getXhr(){
+    var xhr = null;
+    if(window.XMLHttpRequest){
+      xhr = new XMLHttpRequest();
+    }else{
+      xhr = new ActiveXObject("Microsoft.XMLHttp");
+    }
+    return xhr;
+  }
+ </script>
+ </body>
+</html> 
+
+PHP代码：
+
+<?php
+  // 接收客户端发送的请求数据
+  $user = $_POST['user'];
+  // 就是一个JSON格式的string字符串
+  //var_dump($user);
+  $json_user = json_decode($user,true);
+  //var_dump($json_user['name']);
+  $json = '{"a":1,"b":2,"c":3,"d":4,"e":5}';
+  //var_dump(json_decode($json));
+  // 响应数据符合JSON格式的字符串
+  // 1. 手工方式构建
+  //echo '{"name":"zhouzhiruo","pwd":"123456"}';
+  // 2. 使用json_encode()函数
+  echo json_encode($json_user);
+?> 
+
+二    Ajax中的XML格式
+html页面：
+
+<html>
+   <body>
+ <input type="button" value="Ajax" id="btn">
+ <script>
+  var btn = document.getElementById("btn");
+  btn.onclick = function(){
+    // 实现Ajax的异步交互
+    var xhr = getXhr();
+    xhr.open("post","07.php");
+    xhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
+    /*
+     * 如何构建符合XML格式的请求数据
+     * * 注意
+     *  * 请求数据的格式 - key=value 不能改变的
+     * * 将value值构建成符合XML格式的数据
+     *  * 数据类型 - 字符串(string)
+     *  * 格式符合XML的语法要求
+     * * 编写注意
+     *  * 定义变量 - 专门构建XML格式的数据
+     *  * 在send()方法进行拼串
+     */
+    var user = "<user><name>zhangwuji</name><pwd>123456</pwd></user>";
+    xhr.send("user="+user);
+    xhr.onreadystatechange = function(){
+      if(xhr.readyState==4&&xhr.status==200){
+        // 接收服务器端的响应数据
+        var xmlDoc = xhr.responseXML;
+        var nameEle = xmlDoc.getElementsByTagName("name")[0];
+        var txtEle = nameEle.childNodes[0];
+        console.log(txtEle.nodeValue);
+      }
+    }
+  }
+  function getXhr(){
+    var xhr = null;
+    if(window.XMLHttpRequest){
+      xhr = new XMLHttpRequest();
+    }else{
+      xhr = new ActiveXObject("Microsoft.XMLHttp");
+    }
+    return xhr;
+  }
+ </script>
+ </body>
+</html> 
+PHP页面代码：
+
+<?php
+  // 接收客户端发送的请求数据
+  $user = $_POST['user'];//符合XML格式要求的string类型
+  //var_dump($user);
+  // 创建DOMDocument对象
+  $doc = new DOMDocument();
+  // 调用loadXML()方法
+  $result = $doc->loadXML($user);
+  //var_dump($doc);
+  // 如何构建符合XML格式的数据
+  /* 修改响应头的Content-Type值为"text/xml"
+  header('Content-Type:text/xml');
+  echo $user;// 符合XML格式的string类型
+  */
+  header('Content-Type:application/xml');
+  echo $doc->saveXML();
+?> 
+
+三   Ajax中的HTML格式
+HTML页面：
+
+<html>
+  <body>
+ <select id="province">
+  <option>请选择</option>
+  <option>山东省</option>
+  <option>辽宁省</option>
+  <option>吉林省</option>
+ </select>
+ <select id="city">
+  <option>请选择</option>
+ </select>
+ <script>
+  /*
+   * 需要思考哪些事情?
+   * * 在什么时候执行Ajax的异步请求?
+   *  * 当用户选择具体的省份信息时
+   */
+  // 1. 为id为province元素绑定onchange事件
+  var provinceEle = document.getElementById("province");
+  provinceEle.onchange = function(){
+    // 清空
+    var city = document.getElementById("city");
+    var opts = city.getElementsByTagName("option");
+    for(var z=opts.length-1;z>0;z--){
+      city.removeChild(opts[z]);
+    }
+    if(provinceEle.value != "请选择"){
+      // 2. 执行Ajax异步请求
+      var xhr = getXhr();
+      xhr.open("post","06.php");
+      xhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
+      xhr.send("provcince="+provinceEle.value);
+      xhr.onreadystatechange = function(){
+        if(xhr.readyState==4&&xhr.status==200){
+          // 接收服务器端的数据内容
+          var data = xhr.responseText;
+          // data是字符串,转换为数组
+          var cities = data.split(",");
+          for(var i=0;i<cities.length;i++){
+            var option = document.createElement("option");
+            var textNode = document.createTextNode(cities[i]);
+            option.appendChild(textNode);
+            city.appendChild(option);
+          }
+        }
+      }
+    }
+  }
+  // 定义创建XMLHttpRequest对象的函数
+  function getXhr(){
+    var xhr = null;
+    if(window.XMLHttpRequest){
+      xhr = new XMLHttpRequest();
+    }else{
+      xhr = new ActiveXObject("Microsoft.XMLHttp");
+    }
+    return xhr;
+  }
+ </script>
+ </body>
+</html> 
+php页面：
+<?php
+  // 用于处理客户端请求二级联动的数据
+  // 1. 接收客户端发送的省份信息
+  $province = $_POST['provcince'];
+  // 2. 判断当前的省份信息,提供不同的城市信息
+  switch ($province){
+    case '山东省':
+      echo '青岛市,济南市,威海市,日照市,德州市';
+      break;
+    case '辽宁省':
+      echo '沈阳市,大连市,铁岭市,丹东市,锦州市';
+      break;
+    case '吉林省':
+      echo '长春市,松原市,吉林市,通化市,四平市';
+      break;
+  }
+  // 服务器端响应的是字符串
+?>
